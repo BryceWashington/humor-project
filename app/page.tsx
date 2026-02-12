@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/utils/supabase/server';
+import LoginButton from '@/components/login-button';
+import Link from 'next/link';
 
 export const revalidate = 0; // Disable caching for dynamic data
 
@@ -21,6 +24,9 @@ interface Post {
 }
 
 export default async function Home() {
+  const supabaseServer = await createClient();
+  const { data: { user } } = await supabaseServer.auth.getUser();
+
   const { data: posts, error } = await supabase
     .from('captions')
     .select(`
@@ -47,8 +53,18 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center bg-black text-white">
       <div className="w-full max-w-xl border-x border-gray-800 min-h-screen">
         {/* Header */}
-        <div className="sticky top-0 z-10 backdrop-blur-md bg-black/70 border-b border-gray-800 px-4 py-3">
+        <div className="sticky top-0 z-10 backdrop-blur-md bg-black/70 border-b border-gray-800 px-4 py-3 flex justify-between items-center">
           <h1 className="text-xl font-bold">Home</h1>
+          {user ? (
+            <Link
+              href="/protected"
+              className="text-sm font-bold bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <LoginButton />
+          )}
         </div>
 
         {/* Feed */}
