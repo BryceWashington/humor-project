@@ -1,145 +1,82 @@
-import { supabase } from '@/lib/supabaseClient';
 import { createClient } from '@/utils/supabase/server';
 import LoginButton from '@/components/login-button';
 import Link from 'next/link';
+import InfiniteFeed from '@/components/infinite-feed';
 
-export const revalidate = 0; // Disable caching for dynamic data
-
-interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface Image {
-  url: string | null;
-}
-
-interface Post {
-  id: string;
-  content: string | null;
-  created_datetime_utc: string;
-  profiles: Profile | null;
-  images: Image | null;
-}
+export const revalidate = 0;
 
 export default async function Home() {
-  const supabaseServer = await createClient();
-  const { data: { user } } = await supabaseServer.auth.getUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: posts, error } = await supabase
+  const { data: captions, error: captionsError } = await supabase
     .from('captions')
     .select(`
-      id,
-      content,
-      created_datetime_utc,
-      profiles (
-        id,
-        first_name,
-        last_name
-      ),
-      images (
-        url
-      )
+      id, content, created_datetime_utc,
+      profiles (id, first_name, last_name, email),
+      images (url)
     `)
-    .order('created_datetime_utc', { ascending: false });
+    .order('created_datetime_utc', { ascending: false })
+    .limit(20);
 
-  if (error) {
-    console.error('Error fetching posts:', error);
-    return <div className="p-4 text-red-500">Error loading tweets.</div>;
+  if (captionsError) {
+    console.error('Error fetching captions:', captionsError);
+    return <div className="p-8 text-center text-red-500">Failed to load content.</div>;
   }
 
+  const captionIds = captions?.map((c) => c.id) || [];
+  const { data: votes } = await supabase
+    .from('caption_votes')
+    .select('caption_id, vote_value, profile_id')
+    .in('caption_id', captionIds);
+
+  const initialVoteMap: Record<string, { score: number; userVote: number }> = {};
+  captions?.forEach(c => initialVoteMap[c.id] = { score: 0, userVote: 0 });
+
+  votes?.forEach((vote) => {
+    const entry = initialVoteMap[vote.caption_id];
+    if (entry) {
+      entry.score += vote.vote_value;
+      if (user && vote.profile_id === user.id) entry.userVote = vote.vote_value;
+    }
+  });
+
   return (
-    <main className="flex min-h-screen flex-col items-center bg-black text-white">
-      <div className="w-full max-w-xl border-x border-gray-800 min-h-screen">
+    <main className="flex min-h-screen flex-col items-center bg-[#030303] text-[#d7dadc] font-sans">
+      <div className="w-full max-w-4xl min-h-screen flex flex-col px-4">
         {/* Header */}
-        <div className="sticky top-0 z-10 backdrop-blur-md bg-black/70 border-b border-gray-800 px-4 py-3 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Home</h1>
-          {user ? (
-            <Link
-              href="/protected"
-              className="text-sm font-bold bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition-colors"
-            >
-              Dashboard
-            </Link>
-          ) : (
-            <LoginButton />
-          )}
+        <div className="sticky top-0 z-10 bg-[#1a1a1b] border-b border-gray-800 px-4 py-2 flex justify-between items-center mb-4">
+          <Link href="/" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#ff4500] rounded-full flex items-center justify-center">
+              <span className="text-white text-lg">H</span>
+            </div>
+            Humor
+          </Link>
+          <div className="flex gap-2">
+            {user ? (
+              <Link
+                href="/protected"
+                className="text-sm font-semibold bg-[#d7dadc] text-black px-6 py-1.5 rounded-full hover:bg-white transition-colors"
+              >
+                Profile
+              </Link>
+            ) : (
+              <LoginButton />
+            )}
+          </div>
         </div>
 
-        {/* Feed */}
-        <div>
-          {posts?.map((post: any) => {
-            const profile = post.profiles;
-            const image = post.images;
-            const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Anonymous';
-            const handle = `@${name.replace(/\s+/g, '').toLowerCase() || 'user'}`;
-            const time = new Date(post.created_datetime_utc).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-            });
-
-            return (
-              <div key={post.id} className="border-b border-gray-800 p-4 hover:bg-white/3 transition-colors">
-                <div className="flex gap-3">
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-gray-600 flex items-center justify-center text-lg font-bold select-none">
-                      {name[0] || '?'}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 text-gray-500 text-sm leading-5">
-                      <span className="font-bold text-white text-base truncate">{name}</span>
-                      <span className="truncate">{handle}</span>
-                      <span>·</span>
-                      <span className="hover:underline">{time}</span>
-                    </div>
-
-                    <div className="mt-1 text-[15px] text-white whitespace-pre-wrap leading-6">
-                      {post.content}
-                    </div>
-
-                    {image?.url && (
-                      <div className="mt-3 rounded-2xl overflow-hidden border border-gray-800">
-                        <img
-                          src={image.url}
-                          alt="Post image"
-                          className="w-full h-auto object-cover max-h-[500px]"
-                        />
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex justify-between mt-3 text-gray-500 max-w-md">
-                      <div className="group flex items-center gap-2 cursor-pointer hover:text-blue-500">
-                        <div className="p-2 rounded-full group-hover:bg-blue-500/10">
-                          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M1.751 10c0-4.42 3.584-8 8.005-8h4.366c4.49 0 8.129 3.64 8.129 8.13 0 2.96-1.607 5.68-4.196 7.11l-8.054 4.46v-3.69h-.067c-4.49.1-8.183-3.51-8.183-8.01zm8.005-6c-3.317 0-6.005 2.69-6.005 6 0 3.37 2.77 6.08 6.138 6.01l.351-.01h1.761v2.3l5.087-2.81c1.951-1.08 3.163-3.13 3.163-5.36 0-3.39-2.744-6.13-6.129-6.13H9.756z"></path></g></svg>
-                        </div>
-                      </div>
-                      <div className="group flex items-center gap-2 cursor-pointer hover:text-green-500">
-                        <div className="p-2 rounded-full group-hover:bg-green-500/10">
-                          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.79-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.79 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"></path></g></svg>
-                        </div>
-                      </div>
-                      <div className="group flex items-center gap-2 cursor-pointer hover:text-pink-500">
-                        <div className="p-2 rounded-full group-hover:bg-pink-500/10">
-                          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.605 3.01.894 1.81.846 4.17-.514 6.67z"></path></g></svg>
-                        </div>
-                      </div>
-                      <div className="group flex items-center gap-2 cursor-pointer hover:text-blue-500">
-                        <div className="p-2 rounded-full group-hover:bg-blue-500/10">
-                          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current"><g><path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.3 3.3-1.41-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z"></path></g></svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        {/* Content Area */}
+        <div className="flex-1 max-w-2xl mx-auto w-full">
+          {captions && captions.length > 0 ? (
+            <InfiniteFeed 
+              initialCaptions={captions}
+              initialVoteMap={initialVoteMap}
+              userId={user?.id}
+            />
+          ) : (
+            <div className="p-8 text-center text-gray-500">No captions found.</div>
+          )}
         </div>
       </div>
     </main>
