@@ -2,7 +2,6 @@ import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
 import InfiniteFeed from '@/components/infinite-feed';
 import Navbar from '@/components/navbar';
-import SortOptions from '@/components/sort-options';
 
 export const revalidate = 0;
 
