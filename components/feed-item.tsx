@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import VoteControl from './vote-control';
+import { useToast } from './toast-context';
 
 interface FeedItemProps {
   post: any;
@@ -22,10 +22,15 @@ export default function FeedItem({
   const [score, setScore] = useState(initialScore);
   const [userVote, setUserVote] = useState(initialUserVote);
   const [isVoting, setIsVoting] = useState(false);
+  const { showToast } = useToast();
   const supabase = createClient();
 
   const handleVote = async (newValue: number) => {
-    if (!userId || isVoting) return;
+    if (!userId) {
+      showToast("You need to log in to vote");
+      return;
+    }
+    if (isVoting) return;
 
     const nextVote = userVote === newValue ? 0 : newValue;
     const scoreDiff = nextVote - userVote;
@@ -81,10 +86,10 @@ export default function FeedItem({
         <div className="flex flex-col items-center w-12 pt-1">
           <button
             onClick={() => handleVote(1)}
-            disabled={!userId || isVoting}
-            className={`p-1 rounded hover:bg-[#1a1a1b] transition-colors ${
+            disabled={isVoting}
+            className={`p-1 rounded hover:bg-[#1a1a1b] transition-colors cursor-pointer ${
               userVote === 1 ? 'text-[#ff4500]' : 'text-[#818384] hover:text-[#d7dadc]'
-            } ${!userId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            }`}
           >
             <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
               <path d="M12 4l8 8H4l8-8z" />
@@ -100,10 +105,10 @@ export default function FeedItem({
 
           <button
             onClick={() => handleVote(-1)}
-            disabled={!userId || isVoting}
-            className={`p-1 rounded hover:bg-[#1a1a1b] transition-colors ${
+            disabled={isVoting}
+            className={`p-1 rounded hover:bg-[#1a1a1b] transition-colors cursor-pointer ${
               userVote === -1 ? 'text-[#7193ff]' : 'text-[#818384] hover:text-[#d7dadc]'
-            } ${!userId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            }`}
           >
             <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
               <path d="M12 20l-8-8h16l-8 8z" />

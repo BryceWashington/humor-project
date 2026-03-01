@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/navbar'
 import ProfileTabs from '@/components/profile-tabs'
+import SignOutButton from '@/components/signout-button'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -61,7 +62,10 @@ export default async function ProfilePage() {
               {user.email?.[0].toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{user.email?.split('@')[0]}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold">{user.email?.split('@')[0]}</h1>
+                <SignOutButton />
+              </div>
               <p className="text-[#818384] text-sm">Member since {new Date(user.created_at).toLocaleDateString()}</p>
             </div>
           </div>
