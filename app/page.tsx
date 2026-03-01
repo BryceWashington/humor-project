@@ -1,23 +1,64 @@
 import { createClient } from '@/utils/supabase/server';
-import LoginButton from '@/components/login-button';
 import Link from 'next/link';
 import InfiniteFeed from '@/components/infinite-feed';
+import Navbar from '@/components/navbar';
 
 export const revalidate = 0;
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const { sort = 'new' } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: captions, error: captionsError } = await supabase
+  // Fetch caption IDs the user has already voted on to filter them out
+  let votedCaptionIds: string[] = [];
+  if (user) {
+    const { data: userVotes } = await supabase
+      .from('caption_votes')
+      .select('caption_id')
+      .eq('profile_id', user.id);
+    
+    if (userVotes) {
+      votedCaptionIds = userVotes.map(v => v.caption_id);
+    }
+  }
+
+  let query = supabase
     .from('captions')
     .select(`
-      id, content, created_datetime_utc,
+      id, content, created_datetime_utc, like_count,
       profiles (id, first_name, last_name, email),
       images (url)
-    `)
-    .order('created_datetime_utc', { ascending: false })
-    .limit(20);
+    `);
+
+  // Handle Sorting
+  if (sort === 'new') {
+    query = query.order('created_datetime_utc', { ascending: false });
+  } else {
+    // Top sorting
+    const now = new Date();
+    let startDate = new Date();
+    
+    if (sort === 'top_day') startDate.setDate(now.getDate() - 1);
+    else if (sort === 'top_week') startDate.setDate(now.getDate() - 7);
+    else if (sort === 'top_month') startDate.setMonth(now.getMonth() - 1);
+    else startDate.setFullYear(now.getFullYear() - 10); // Default to all time if unknown
+
+    query = query
+      .order('like_count', { ascending: false })
+      .order('created_datetime_utc', { ascending: false })
+      .gte('created_datetime_utc', startDate.toISOString());
+  }
+
+  if (votedCaptionIds.length > 0) {
+    query = query.not('id', 'in', `(${votedCaptionIds.join(',')})`);
+  }
+
+  const { data: captions, error: captionsError } = await query.limit(20);
 
   if (captionsError) {
     console.error('Error fetching captions:', captionsError);
@@ -44,35 +85,17 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center bg-[#030303] text-[#d7dadc] font-sans">
       <div className="w-full max-w-4xl min-h-screen flex flex-col px-4">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#1a1a1b] border-b border-gray-800 px-4 py-2 flex justify-between items-center mb-4">
-          <Link href="/" className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#ff4500] rounded-full flex items-center justify-center">
-              <span className="text-white text-lg">H</span>
-            </div>
-            Humor
-          </Link>
-          <div className="flex gap-2">
-            {user ? (
-              <Link
-                href="/protected"
-                className="text-sm font-semibold bg-[#d7dadc] text-black px-6 py-1.5 rounded-full hover:bg-white transition-colors"
-              >
-                Profile
-              </Link>
-            ) : (
-              <LoginButton />
-            )}
-          </div>
-        </div>
+        <Navbar />
 
         {/* Content Area */}
         <div className="flex-1 max-w-2xl mx-auto w-full">
-          {captions && captions.length > 0 ? (
+          {captions ? (
             <InfiniteFeed 
               initialCaptions={captions}
               initialVoteMap={initialVoteMap}
+              initialVotedIds={votedCaptionIds}
               userId={user?.id}
+              currentSort={sort}
             />
           ) : (
             <div className="p-8 text-center text-gray-500">No captions found.</div>

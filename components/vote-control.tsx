@@ -8,6 +8,7 @@ interface VoteControlProps {
   initialScore: number;
   initialUserVote: number;
   userId: string | undefined;
+  onVote?: (newValue: number) => void;
 }
 
 export default function VoteControl({
@@ -15,6 +16,7 @@ export default function VoteControl({
   initialScore,
   initialUserVote,
   userId,
+  onVote,
 }: VoteControlProps) {
   const [score, setScore] = useState(initialScore);
   const [userVote, setUserVote] = useState(initialUserVote);
@@ -49,6 +51,14 @@ export default function VoteControl({
             modified_datetime_utc: new Date().toISOString(),
           }, { onConflict: 'caption_id, profile_id' });
       }
+
+      // Update like_count on the caption itself for faster sorting
+      await supabase.rpc('increment_caption_score', { 
+        cid: captionId, 
+        val: scoreDiff 
+      });
+
+      if (onVote) onVote(nextVote);
     } catch (error) {
       console.error('Voting failed:', error);
       setScore((prev) => prev - scoreDiff);
