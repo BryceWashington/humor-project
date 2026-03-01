@@ -70,7 +70,7 @@ CREATE TABLE public.caption_votes (
   CONSTRAINT caption_votes_caption_id_fkey FOREIGN KEY (caption_id) REFERENCES public.captions(id)
 );
 CREATE TABLE public.captions (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  id uuid NOT NULL DEFAULT gendo_random_uuid(),
   created_datetime_utc timestamp with time zone NOT NULL DEFAULT now(),
   modified_datetime_utc timestamp with time zone,
   content character varying,

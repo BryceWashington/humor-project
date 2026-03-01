@@ -60,9 +60,9 @@ This project is a web application where users can view and interact with caption
   - Unified the "Voting History" tab on the profile page to use the shared `FeedItem` component, bringing gesture-based voting to the user's history.
   - Redesigned the image container to have a consistent vertical height (450px) without cropping images (`object-contain`), ensuring a steady feed rhythm.
   - Simplified the hover voting overlays by removing background circles and borders, using large, high-contrast icons with drop shadows for a cleaner, modern look.
-- **Responsive Sidebar Layout**:
-  - Expanded the `Navbar` to span the full width of the screen on all pages (including Profile), with content centered in a `max-w-6xl` container.
-  - Standardized the "Sort Feed" interface to use dropdown menus in both the desktop sidebar and mobile headers, ensuring a consistent and familiar interaction pattern.
-  - Optimized the homepage and profile layouts to use a flexible grid system, centering the main content while utilizing sidebars on larger screens where appropriate.
+- **Simplified Feed & Navigation**:
+  - Removed feed sorting options (Top Day/Week/Month) and the `like_count` synchronization logic to ensure data integrity across multiple applications.
+  - Reverted the main feed to a consistent, date-based "Newest First" sorting.
+  - Removed the `SortOptions` sidebar and dropdown menus to simplify the user interface.
 - **Architectural Cleanup**:
   - Unified the navigation header across Home and Profile pages to reduce duplication and improve maintainability.

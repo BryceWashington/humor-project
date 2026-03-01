@@ -53,11 +53,6 @@ export default function FeedItem({
           }, { onConflict: 'caption_id, profile_id' });
       }
 
-      await supabase.rpc('increment_caption_score', { 
-        cid: post.id, 
-        val: scoreDiff 
-      });
-
       onVoteAction(post.id, nextVote);
     } catch (error) {
       console.error('Voting failed:', error);

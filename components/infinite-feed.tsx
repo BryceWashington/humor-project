@@ -3,15 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import FeedItem from './feed-item';
-import { useRouter } from 'next/navigation';
-import SortOptions from './sort-options';
 
 interface InfiniteFeedProps {
   initialCaptions: any[];
   initialVoteMap: Record<string, { score: number; userVote: number }>;
   initialVotedIds: string[];
   userId: string | undefined;
-  currentSort: string;
 }
 
 export default function InfiniteFeed({
@@ -19,23 +16,14 @@ export default function InfiniteFeed({
   initialVoteMap,
   initialVotedIds,
   userId,
-  currentSort,
 }: InfiniteFeedProps) {
   const [captions, setCaptions] = useState(initialCaptions);
   const [voteMap, setVoteMap] = useState(initialVoteMap);
   const [votedIds, setVotedIds] = useState(initialVotedIds);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(initialCaptions.length >= 20);
   const [isLoading, setIsLoading] = useState(false);
   const observerTarget = useRef(null);
   const supabase = createClient();
-
-  // Reset state when sort changes
-  useEffect(() => {
-    setCaptions(initialCaptions);
-    setVoteMap(initialVoteMap);
-    setHasMore(initialCaptions.length >= 20);
-    setIsLoading(false);
-  }, [currentSort, initialCaptions, initialVoteMap]);
 
   const loadMore = async () => {
     if (isLoading || !hasMore) return;
@@ -45,30 +33,14 @@ export default function InfiniteFeed({
     let query = supabase
       .from('captions')
       .select(`
-        id, content, created_datetime_utc, like_count,
+        id, content, created_datetime_utc,
         profiles (id, first_name, last_name, email),
         images (url)
-      `);
+      `)
+      .order('created_datetime_utc', { ascending: false });
 
-    if (currentSort === 'new') {
-      query = query
-        .order('created_datetime_utc', { ascending: false })
-        .lt('created_datetime_utc', lastCaption.created_datetime_utc);
-    } else {
-      // Top Sorting
-      const now = new Date();
-      let startDate = new Date();
-      
-      if (currentSort === 'top_day') startDate.setDate(now.getDate() - 1);
-      else if (currentSort === 'top_week') startDate.setDate(now.getDate() - 7);
-      else if (currentSort === 'top_month') startDate.setMonth(now.getMonth() - 1);
-      else startDate.setFullYear(now.getFullYear() - 10);
-
-      query = query
-        .order('like_count', { ascending: false })
-        .order('created_datetime_utc', { ascending: false })
-        .gte('created_datetime_utc', startDate.toISOString())
-        .range(captions.length, captions.length + 19);
+    if (lastCaption) {
+      query = query.lt('created_datetime_utc', lastCaption.created_datetime_utc);
     }
 
     if (votedIds.length > 0) {
@@ -127,9 +99,6 @@ export default function InfiniteFeed({
 
   return (
     <div className="flex flex-col">
-      {/* Mobile Sort Bar */}
-      <SortOptions currentSort={currentSort} isMobile={true} />
-
       <div className="flex flex-col">
         {captions.map((post: any) => {
           const voteData = voteMap[post.id] || { score: 0, userVote: 0 };
