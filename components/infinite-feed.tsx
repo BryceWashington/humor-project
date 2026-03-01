@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import VoteControl from './vote-control';
-import { useRouter, useSearchParams } from 'next/navigation';
+import FeedItem from './feed-item';
+import { useRouter } from 'next/navigation';
+import SortOptions from './sort-options';
 
 interface InfiniteFeedProps {
   initialCaptions: any[];
@@ -27,7 +28,6 @@ export default function InfiniteFeed({
   const [isLoading, setIsLoading] = useState(false);
   const observerTarget = useRef(null);
   const supabase = createClient();
-  const router = useRouter();
 
   // Reset state when sort changes
   useEffect(() => {
@@ -125,84 +125,33 @@ export default function InfiniteFeed({
     return () => observer.disconnect();
   }, [captions, hasMore, isLoading]);
 
-  const handleSortChange = (sort: string) => {
-    router.push(`/?sort=${sort}`);
-  };
-
   return (
     <div className="flex flex-col">
-      {/* Sort Bar */}
-      <div className="flex justify-between items-center mb-4 bg-[#1a1a1b] p-2 px-4 rounded border border-gray-800">
-        <span className="text-xs font-bold text-[#818384] uppercase tracking-wider">Sort By</span>
-        <div className="relative">
-          <select
-            value={currentSort}
-            onChange={(e) => handleSortChange(e.target.value)}
-            className="appearance-none bg-[#272729] text-[#d7dadc] text-xs font-bold py-1.5 pl-3 pr-8 rounded-md border border-gray-700 hover:border-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff4500] cursor-pointer transition-colors"
-          >
-            <option value="new">Newest</option>
-            <option value="top_day">Top (Day)</option>
-            <option value="top_week">Top (Week)</option>
-            <option value="top_month">Top (Month)</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#818384]">
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-              <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-            </svg>
-          </div>
-        </div>
+      {/* Mobile Sort Bar */}
+      <SortOptions currentSort={currentSort} isMobile={true} />
+
+      <div className="flex flex-col">
+        {captions.map((post: any) => {
+          const voteData = voteMap[post.id] || { score: 0, userVote: 0 };
+          
+          return (
+            <FeedItem
+              key={post.id}
+              post={post}
+              userId={userId}
+              initialScore={voteData.score}
+              initialUserVote={voteData.userVote}
+              onVoteAction={(captionId, newValue) => {
+                if (newValue !== 0) {
+                  setVotedIds((prev) => Array.from(new Set([...prev, captionId])));
+                } else {
+                  setVotedIds((prev) => prev.filter(id => id !== captionId));
+                }
+              }}
+            />
+          );
+        })}
       </div>
-
-      {captions.map((post: any) => {
-        const profile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
-        const email = profile?.email;
-        const username = email ? email.split('@')[0] : 'anonymous';
-        const time = new Date(post.created_datetime_utc).toLocaleString(undefined, { 
-          month: 'short', 
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        });
-        const voteData = voteMap[post.id] || { score: 0, userVote: 0 };
-
-        return (
-          <div key={post.id} className="flex border border-gray-800 bg-[#1a1a1b] mb-3 rounded hover:border-[#343536] transition-colors overflow-hidden">
-            {/* Left: Voting area */}
-            <div className="bg-[#151516] w-10 flex flex-col items-center py-2">
-              <VoteControl
-                captionId={post.id}
-                initialScore={voteData.score}
-                initialUserVote={voteData.userVote}
-                userId={userId}
-                onVote={(newValue) => {
-                  if (newValue !== 0) {
-                    setVotedIds((prev) => Array.from(new Set([...prev, post.id])));
-                  } else {
-                    setVotedIds((prev) => prev.filter(id => id !== post.id));
-                  }
-                }}
-              />
-            </div>
-
-            {/* Right: Content */}
-            <div className="flex-1 p-2">
-              <div className="flex items-center gap-1 text-[12px] text-[#818384] mb-1">
-                <span>{time}</span>
-              </div>
-              
-              <h3 className="text-lg font-medium text-[#d7dadc] mb-2">{post.content}</h3>
-
-              {post.images?.url && (
-                <div className="rounded border border-gray-800 bg-black flex justify-center mb-2 overflow-hidden">
-                  <img src={post.images.url} alt="Post content" className="max-w-full h-auto max-h-[512px] object-contain" />
-                </div>
-              )}
-
-              <div className="mt-2" />
-            </div>
-          </div>
-        );
-      })}
 
       <div ref={observerTarget} className="py-8 flex flex-col items-center justify-center gap-4">
         {isLoading ? (

@@ -52,11 +52,10 @@ export default async function ProfilePage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-[#030303] text-[#d7dadc] font-sans">
-      <div className="w-full max-w-4xl min-h-screen flex flex-col px-4">
-        <Navbar />
-
+      <Navbar />
+      <div className="w-full max-w-6xl mx-auto flex flex-col px-4 py-2">
         {/* Profile Content */}
-        <div className="flex-1 max-w-2xl mx-auto w-full">
+        <div className="max-w-2xl mx-auto w-full">
           <div className="bg-[#1a1a1b] p-6 rounded border border-gray-800 mb-6 flex items-center gap-4">
             <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center text-3xl font-bold text-gray-300">
               {user.email?.[0].toUpperCase()}

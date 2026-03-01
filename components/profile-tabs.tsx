@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import VoteControl from '@/components/vote-control';
 import { createClient } from '@/utils/supabase/client';
+import FeedItem from './feed-item';
 
 interface ProfileTabsProps {
   votedItems: any[];
@@ -70,36 +70,17 @@ export default function ProfileTabs({ votedItems, uploadedImages, scores, userId
             votedItems.map((item: any) => {
               const post = item.captions;
               if (!post) return null;
-              const time = new Date(post.created_datetime_utc).toLocaleString(undefined, { 
-                month: 'short', 
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
-              });
               const score = scores[post.id] || 0;
 
               return (
-                <div key={post.id} className="flex border border-gray-800 bg-[#1a1a1b] rounded overflow-hidden hover:border-[#343536] transition-colors">
-                  <div className="bg-[#151516] w-10 flex flex-col items-center py-2">
-                    <VoteControl
-                      captionId={post.id}
-                      initialScore={score}
-                      initialUserVote={item.vote_value}
-                      userId={userId}
-                    />
-                  </div>
-                  <div className="flex-1 p-3">
-                    <div className="flex items-center gap-1 text-[12px] text-[#818384] mb-1">
-                      <span>{time}</span>
-                    </div>
-                    <h3 className="text-lg font-medium text-[#d7dadc] mb-2">{post.content}</h3>
-                    {post.images?.url && (
-                      <div className="rounded border border-gray-800 bg-black flex justify-center mb-2 overflow-hidden max-h-[300px]">
-                        <img src={post.images.url} alt="Post content" className="max-w-full h-auto object-contain" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <FeedItem
+                  key={post.id}
+                  post={post}
+                  userId={userId}
+                  initialScore={score}
+                  initialUserVote={item.vote_value}
+                  onVoteAction={() => {}} // Voting is handled internally by FeedItem
+                />
               );
             })
           ) : (

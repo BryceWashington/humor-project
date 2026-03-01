@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
 import InfiniteFeed from '@/components/infinite-feed';
 import Navbar from '@/components/navbar';
+import SortOptions from '@/components/sort-options';
 
 export const revalidate = 0;
 
@@ -14,7 +15,7 @@ export default async function Home({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch caption IDs the user has already voted on to filter them out
+  // ... (existing votedCaptionIds logic)
   let votedCaptionIds: string[] = [];
   if (user) {
     const { data: userVotes } = await supabase
@@ -35,7 +36,7 @@ export default async function Home({
       images (url)
     `);
 
-  // Handle Sorting
+  // ... (existing sorting logic)
   if (sort === 'new') {
     query = query.order('created_datetime_utc', { ascending: false });
   } else {
@@ -84,11 +85,15 @@ export default async function Home({
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-[#030303] text-[#d7dadc] font-sans">
-      <div className="w-full max-w-4xl min-h-screen flex flex-col px-4">
-        <Navbar />
+      <Navbar />
+      <div className="w-full max-w-6xl mx-auto flex flex-col md:flex-row gap-8 px-4 py-2">
+        {/* Left Sidebar - Hidden on mobile */}
+        <aside className="hidden md:block w-64 shrink-0 sticky top-20 h-fit">
+          <SortOptions currentSort={sort} />
+        </aside>
 
         {/* Content Area */}
-        <div className="flex-1 max-w-2xl mx-auto w-full">
+        <div className="flex-1 max-w-2xl w-full">
           {captions ? (
             <InfiniteFeed 
               initialCaptions={captions}
@@ -101,6 +106,9 @@ export default async function Home({
             <div className="p-8 text-center text-gray-500">No captions found.</div>
           )}
         </div>
+
+        {/* Right Sidebar - Spacer for symmetry on very large screens */}
+        <aside className="hidden lg:block w-64 shrink-0" />
       </div>
     </main>
   );
