@@ -25,7 +25,7 @@ export default async function ProfilePage() {
         id,
         content,
         created_datetime_utc,
-        profiles (id, first_name, last_name, email),
+        profiles!captions_profile_id_fkey (id, first_name, last_name, email),
         images (url)
       )
     `)

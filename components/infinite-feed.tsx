@@ -34,7 +34,7 @@ export default function InfiniteFeed({
       .from('captions')
       .select(`
         id, content, created_datetime_utc,
-        profiles (id, first_name, last_name, email),
+        profiles!captions_profile_id_fkey (id, first_name, last_name, email),
         images (url)
       `)
       .order('created_datetime_utc', { ascending: false });
