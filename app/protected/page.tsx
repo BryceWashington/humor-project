@@ -26,7 +26,7 @@ export default async function ProfilePage() {
         content,
         created_datetime_utc,
         profiles!captions_profile_id_fkey (id, first_name, last_name, email),
-        images (url)
+        images (id, url)
       )
     `)
     .eq('profile_id', user.id)

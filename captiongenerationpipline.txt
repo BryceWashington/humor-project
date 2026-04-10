@@ -1,0 +1,160 @@
+How to Call the Caption Pipeline API
+
+Use this base URL for all API calls: https://api.almostcrackd.ai
+
+
+You will make requests in this order:
+
+
+
+Generate a presigned upload URL
+
+Upload image bytes to that presigned URL
+
+Register the uploaded image URL with the pipeline
+
+Generate captions from the registered image
+
+
+Requirements
+
+
+A valid JWT access token
+
+Include auth header on API routes:
+
+Authorization: Bearer <your-token>
+
+
+
+Supported image content types:
+
+image/jpeg, image/jpg, image/png, image/webp, image/gif, image/heic
+
+
+
+
+Step 1: Generate Presigned URL
+
+Request
+
+POST https://api.almostcrackd.ai/pipeline/generate-presigned-url
+
+
+Headers:
+
+
+Authorization: Bearer <your-token>
+Content-Type: application/json
+
+Body:
+
+
+{
+  "contentType": "image/jpeg"
+}
+
+Response
+
+{
+  "presignedUrl": "https://....",
+  "cdnUrl": "https://presigned-url-uploads.almostcrackd.ai/<userId>/<filename>.jpg"
+}
+
+
+presignedUrl: direct upload target (S3 signed URL)
+
+cdnUrl: public URL of the uploaded image (used in Step 3)
+
+
+Step 2: Upload Image Bytes to presignedUrl
+
+This is a PUT request directly to the returned presignedUrl (not to api.almostcrackd.ai).
+
+
+await fetch(presignedUrl, {
+  method: "PUT",
+  headers: {
+    "Content-Type": file.type
+  },
+  body: file
+});
+
+Important: Content-Type should match what you sent in Step 1.
+
+
+Step 3: Register Image URL in the Pipeline
+
+Request
+
+POST https://api.almostcrackd.ai/pipeline/upload-image-from-url
+
+
+Headers:
+
+
+Authorization: Bearer <your-token>
+Content-Type: application/json
+
+Body:
+
+
+{
+  "imageUrl": "<cdnUrl from Step 1>",
+  "isCommonUse": false
+}
+
+Response
+
+{
+  "imageId": "uuid-value",
+  "now": 1738690000000
+}
+
+Save imageId for the caption step.
+
+
+Step 4: Generate Captions
+
+Request
+
+POST https://api.almostcrackd.ai/pipeline/generate-captions
+
+
+Headers:
+
+
+Authorization: Bearer <your-token>
+Content-Type: application/json
+
+Body:
+
+
+{
+  "imageId": "uuid-value-from-step-3"
+}
+
+Response
+
+Returns an array of caption records generated and saved by the system.
+
+
+Captions for Specific Flavor
+
+To generate captions for one humor flavor, call POST /pipeline/generate-captions and include humorFlavorId in the JSON body.
+
+
+curl -X POST https://www.almostcrackd.ai/pipeline/generate-captions
+
+-H “Authorization: Bearer <SUPABASE_JWT>”
+
+-H “Content-Type: application/json”
+
+-d ‘{
+
+“imageId”: “”,
+
+“humorFlavorId”:
+
+}’
+

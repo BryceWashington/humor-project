@@ -27,7 +27,7 @@ export default async function Home() {
     .select(`
       id, content, created_datetime_utc,
       profiles!captions_profile_id_fkey (id, first_name, last_name, email),
-      images (url)
+      images (id, url)
     `)
     .order('created_datetime_utc', { ascending: false });
 

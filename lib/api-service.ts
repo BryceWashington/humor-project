@@ -17,11 +17,35 @@ export interface PresignedUrlResponse {
 
 const BASE_URL = 'https://api.almostcrackd.ai';
 
+export async function generateCaptions(
+  imageId: string,
+  token: string,
+  humorFlavorId?: string | number
+): Promise<CaptionRecord[]> {
+  const body: any = { imageId };
+  if (humorFlavorId) {
+    body.humorFlavorId = humorFlavorId;
+  }
+
+  const step4Res = await fetch(`${BASE_URL}/pipeline/generate-captions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!step4Res.ok) throw new Error('Failed to generate captions');
+  return (await step4Res.json()) as CaptionRecord[];
+}
+
 export async function uploadImagePipeline(
   file: File,
   token: string,
-  onProgress: (message: string) => void
-): Promise<CaptionRecord[]> {
+  onProgress: (message: string) => void,
+  humorFlavorId?: string | number
+): Promise<{ captions: CaptionRecord[]; imageId: string }> {
   try {
     // Step 1: Generate Presigned URL
     onProgress('Uploading image...');
@@ -66,19 +90,9 @@ export async function uploadImagePipeline(
     const { imageId } = (await step3Res.json()) as UploadResponse;
 
     // Step 4: Generate Captions
-    const step4Res = await fetch(`${BASE_URL}/pipeline/generate-captions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ imageId }),
-    });
+    const captions = await generateCaptions(imageId, token, humorFlavorId);
 
-    if (!step4Res.ok) throw new Error('Failed to generate captions');
-    const captions = (await step4Res.json()) as CaptionRecord[];
-
-    return captions;
+    return { captions, imageId };
   } catch (error) {
     console.error('Upload pipeline failed:', error);
     throw error;
