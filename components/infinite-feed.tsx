@@ -28,10 +28,9 @@ export default function InfiniteFeed({
 
   useEffect(() => {
     const checkUser = async () => {
-      // @ts-ignore
-      if (window.__TEST_SESSION__) {
-        // @ts-ignore
-        setUserId(window.__TEST_SESSION__.user.id);
+      const testSession = (window as any).__TEST_SESSION__;
+      if (testSession) {
+        setUserId(testSession.user.id);
         return;
       }
       const { data: { user } } = await supabase.auth.getUser();
@@ -40,10 +39,9 @@ export default function InfiniteFeed({
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // @ts-ignore
-      if (window.__TEST_SESSION__) {
-        // @ts-ignore
-        setUserId(window.__TEST_SESSION__.user.id);
+      const testSession = (window as any).__TEST_SESSION__;
+      if (testSession) {
+        setUserId(testSession.user.id);
         return;
       }
       setUserId(session?.user?.id);

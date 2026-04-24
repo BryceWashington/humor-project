@@ -19,7 +19,7 @@ export default async function Home() {
       .eq('profile_id', user.id);
     
     if (userVotes) {
-      votedCaptionIds = userVotes.map(v => v.caption_id);
+      votedCaptionIds = userVotes.map((v: { caption_id: string }) => v.caption_id);
     }
   }
 
@@ -66,7 +66,7 @@ export default async function Home() {
 
     captions.forEach(c => initialVoteMap[c.id] = { score: 0, userVote: 0 });
 
-    votes?.forEach((vote) => {
+    votes?.forEach((vote: { caption_id: string; vote_value: number; profile_id: string }) => {
       const entry = initialVoteMap[vote.caption_id];
       if (entry) {
         entry.score += vote.vote_value;

@@ -103,8 +103,8 @@ export default function UploadModal({
     }, 400);
 
     try {
-      // @ts-ignore
-      let token = window.__TEST_SESSION__?.access_token;
+      const testSession = (window as any).__TEST_SESSION__;
+      let token = testSession?.access_token;
       
       if (!token) {
         const { data: { session } } = await supabase.auth.getSession();

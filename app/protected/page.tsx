@@ -71,13 +71,13 @@ export default async function ProfilePage() {
       .order('created_datetime_utc', { ascending: false });
     uploadedImages = uploads || [];
 
-    const captionIds = votedItems?.map(item => (item.captions as any)?.id).filter(Boolean) || [];
+    const captionIds = votedItems?.map((item: any) => (item.captions as any)?.id).filter(Boolean) || [];
     const { data: allVotes } = await supabase
       .from('caption_votes')
       .select('caption_id, vote_value')
       .in('caption_id', captionIds);
 
-    allVotes?.forEach(v => {
+    allVotes?.forEach((v: { caption_id: string; vote_value: number }) => {
       scores[v.caption_id] = (scores[v.caption_id] || 0) + v.vote_value;
     });
   }
