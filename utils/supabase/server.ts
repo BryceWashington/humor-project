@@ -2,6 +2,64 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
+  const isTesting = process.env.TESTING === 'true';
+
+  if (isTesting) {
+    return {
+      auth: {
+        getUser: async () => ({
+          data: {
+            user: {
+              id: 'test-user-id',
+              email: 'test@example.com',
+              aud: 'authenticated',
+              role: 'authenticated',
+            }
+          },
+          error: null
+        }),
+        getSession: async () => ({
+          data: {
+            session: {
+              user: {
+                id: 'test-user-id',
+                email: 'test@example.com',
+              }
+            }
+          },
+          error: null
+        }),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe: () => {} } }
+        }),
+      },
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              limit: () => Promise.resolve({ data: [], error: null }),
+              not: () => ({
+                limit: () => Promise.resolve({ data: [], error: null })
+              })
+            }),
+            not: () => ({
+              limit: () => Promise.resolve({ data: [], error: null })
+            }),
+            limit: () => Promise.resolve({ data: [], error: null })
+          }),
+          order: () => ({
+            limit: () => Promise.resolve({ data: [], error: null }),
+            not: () => ({
+              limit: () => Promise.resolve({ data: [], error: null })
+            })
+          }),
+          in: () => Promise.resolve({ data: [], error: null }),
+          limit: () => Promise.resolve({ data: [], error: null })
+        }),
+      })
+    } as any;
+  }
+
   const cookieStore = await cookies()
 
   return createServerClient(

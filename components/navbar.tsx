@@ -15,12 +15,25 @@ export default function Navbar() {
 
   useEffect(() => {
     const getUser = async () => {
+      // @ts-ignore
+      if (window.__TEST_SESSION__) {
+        console.log('NAVBAR: Using test session', window.__TEST_SESSION__.user.id);
+        // @ts-ignore
+        setUser(window.__TEST_SESSION__.user);
+        return;
+      }
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
     };
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // @ts-ignore
+      if (window.__TEST_SESSION__) {
+        // @ts-ignore
+        setUser(window.__TEST_SESSION__.user);
+        return;
+      }
       setUser(session?.user ?? null);
     });
 

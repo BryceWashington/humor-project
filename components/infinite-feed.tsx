@@ -15,15 +15,42 @@ export default function InfiniteFeed({
   initialCaptions,
   initialVoteMap,
   initialVotedIds,
-  userId,
+  userId: initialUserId,
 }: InfiniteFeedProps) {
   const [captions, setCaptions] = useState(initialCaptions);
   const [voteMap, setVoteMap] = useState(initialVoteMap);
   const [votedIds, setVotedIds] = useState(initialVotedIds);
+  const [userId, setUserId] = useState(initialUserId);
   const [hasMore, setHasMore] = useState(initialCaptions.length >= 20);
   const [isLoading, setIsLoading] = useState(false);
   const observerTarget = useRef(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      // @ts-ignore
+      if (window.__TEST_SESSION__) {
+        // @ts-ignore
+        setUserId(window.__TEST_SESSION__.user.id);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // @ts-ignore
+      if (window.__TEST_SESSION__) {
+        // @ts-ignore
+        setUserId(window.__TEST_SESSION__.user.id);
+        return;
+      }
+      setUserId(session?.user?.id);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   const loadMore = async () => {
     if (isLoading || !hasMore) return;

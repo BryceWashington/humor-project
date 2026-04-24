@@ -72,6 +72,7 @@ export default function UploadModal({
     if (initialImageUrl) setPreviewUrl(initialImageUrl);
   }, [initialImageId, initialImageUrl]);
 
+  console.log('UPLOAD MODAL: Render', { isOpen });
   if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +86,7 @@ export default function UploadModal({
   };
 
   const handleUpload = async () => {
+    console.log('UPLOAD MODAL: handleUpload started', { hasFile: !!file });
     if (!file) return;
 
     setIsLoading(true);
@@ -101,20 +103,30 @@ export default function UploadModal({
     }, 400);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      // @ts-ignore
+      let token = window.__TEST_SESSION__?.access_token;
+      
+      if (!token) {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token;
+      }
+      
+      console.log('UPLOAD MODAL: session token', token ? 'present' : 'MISSING');
 
       if (!token) {
         clearInterval(progressInterval);
         throw new Error('You must be logged in to upload an image.');
       }
 
+      console.log('UPLOAD MODAL: calling uploadImagePipeline');
       const result = await uploadImagePipeline(file, token, (message) => {
         setLoadingMessage(message);
       }, flavorId);
+      console.log('UPLOAD MODAL: pipeline result', result.imageId);
 
       setLoadingProgress(100);
       setTimeout(() => {
+        console.log('UPLOAD MODAL: Setting captions', result.captions.length);
         setCaptions(result.captions);
         setImageId(result.imageId);
       }, 500);

@@ -15,12 +15,14 @@ export function CaptionGenerationProvider({ children }: { children: ReactNode })
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
   const openCaptionGenerator = (id?: string, url?: string) => {
+    console.log('CONTEXT: openCaptionGenerator called', { id, url });
     setImageId(id);
     setImageUrl(url);
     setIsOpen(true);
   };
 
   const handleClose = () => {
+    console.log('CONTEXT: handleClose called');
     setIsOpen(false);
     setImageId(undefined);
     setImageUrl(undefined);
